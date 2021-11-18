@@ -36,6 +36,10 @@
 - it has an adaptable cost.
 
 #### KeyStore:
+Considered secure as we cannot access key material. 
+However, an attacker might not actually need the key contents. The Keystore API could be used to retrieve key references, then they could be used to initialize the Cipher object and then they could be used to decrypt or encrypt application storage.
+That's why biometric authentication is crucial to use.
+
 - setBlockModes(KeyProperties.BLOCK_MODE_GCM) cipher mode GCM
 - setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE) no padding
 - setKeySize(256)
