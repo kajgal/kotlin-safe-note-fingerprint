@@ -18,14 +18,12 @@ object KeyStoreManager {
 
     const val captchaSiteKey = "6LcEVDsdAAAAAJbRg7iUKgPwMdxYZt-pCWqjH4wD"
     const val TIMEOUT_AFTER = 60000L
-    const val DELETE_AFTER = 5
     const val DEVICE_ACCESS_CODE = 101
 
     private const val MASTER_KEY = "\$2a\$08\$AlKj64lkJDMGW"
     private const val ESP_SHARED = "\$2a\$08\$d1ZYLJwvyKu3qSQUbyU99uuh4J2jGi5sDB6q5d3NY.X1IMTe3msi."
     private const val ESP_PASSWORD = "\$2a\$08\$78LX1DgBmK7JZYhO.1byKOCRiFyk1.CT4Jwk16x1leh0uFjpLVC9e"
     private const val ESP_NOTE = "SAFE_NOTE_ESP_NOTE"
-    private const val ESP_FAILED = "SAFE_NOTE_ESP_FAILED"
 
     private var isStrongBox by Delegates.notNull<Boolean>()
     private lateinit var advKeySpec : KeyGenParameterSpec
