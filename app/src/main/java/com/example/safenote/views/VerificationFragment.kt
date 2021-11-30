@@ -1,36 +1,35 @@
 package com.example.safenote.views
 
 import android.annotation.SuppressLint
-import android.app.Activity.RESULT_OK
 import android.app.AlertDialog
-import android.app.KeyguardManager
-import android.content.Context.KEYGUARD_SERVICE
 import android.content.DialogInterface
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.text.InputType
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.TextView
 import androidx.annotation.RequiresApi
+import androidx.biometric.BiometricManager
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.fragment.findNavController
 import com.example.safenote.R
 import com.example.safenote.databinding.FragmentVerificationBinding
-import com.example.safenote.utils.KeyStoreManager
 import com.example.safenote.viewmodels.VerificationViewModel
 import com.google.android.gms.common.api.GoogleApiClient
 import com.google.android.gms.safetynet.SafetyNet
 import com.google.android.material.snackbar.Snackbar
 import com.scottyab.rootbeer.RootBeer
-import java.security.Key
+import java.util.concurrent.Executor
+import androidx.biometric.BiometricPrompt
+import com.example.safenote.utils.CryptographyManager
+import com.example.safenote.utils.SharedPreferencesManager
 
 @Suppress("DEPRECATION")
 class VerificationFragment : Fragment(), GoogleApiClient.ConnectionCallbacks {
@@ -38,11 +37,18 @@ class VerificationFragment : Fragment(), GoogleApiClient.ConnectionCallbacks {
     private lateinit var googleApiClient : GoogleApiClient
     private lateinit var verificationViewModel : VerificationViewModel
     private lateinit var authTimer : CountDownTimer
+
+    private lateinit var executor : Executor
+    private lateinit var biometricPrompt: BiometricPrompt
+    private lateinit var biometricPromptInfo : BiometricPrompt.PromptInfo
+
     private var _binding : FragmentVerificationBinding? = null
     private val binding get() = _binding!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        executor = ContextCompat.getMainExecutor(requireContext())
         verificationViewModel = ViewModelProviders.of(requireActivity()).get(VerificationViewModel::class.java)
     }
 
@@ -57,8 +63,7 @@ class VerificationFragment : Fragment(), GoogleApiClient.ConnectionCallbacks {
 
         binding.captchaAuthBox.setOnClickListener { handleCaptchaAuth() }
 
-        binding.userPasswordAuthBox.setOnClickListener { handleUserPasswordAuth() }
-
+        verificationViewModel.resetVerification()
         connectGoogleApiClient()
         preCheck()
         startTimeCounter()
@@ -90,95 +95,95 @@ class VerificationFragment : Fragment(), GoogleApiClient.ConnectionCallbacks {
     }
 
     // handles interaction with deviceAccessAuth box
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun handleDeviceAuth() {
+        // force user to finish captcha auth first
+        if(verificationViewModel.isCaptchaVerified()) {
 
-        if(verificationViewModel.isDeviceAccessVerified())
-            return
-
-        val keyguardManager = requireActivity().getSystemService(KEYGUARD_SERVICE) as KeyguardManager
-
-        if(keyguardManager.isKeyguardSecure) {
-            val authIntent = keyguardManager.createConfirmDeviceCredentialIntent("", "")
-            KeyStoreManager.setExitIfBackgrounded(false)
-            startActivityForResult(authIntent, KeyStoreManager.DEVICE_ACCESS_CODE)
-        }
-        else {
-            showDialog(getString(R.string.noDevicePassword))
-        }
-    }
-
-    // handles interaction with captchaAuth box
-    private fun handleCaptchaAuth() {
-
-        if(verificationViewModel.isCaptchaVerified())
-            return
-
-        SafetyNet.SafetyNetApi.verifyWithRecaptcha(googleApiClient, KeyStoreManager.captchaSiteKey)
-                .setResultCallback { result ->
-                    if(result.status.isSuccess) {
-                        binding.captchaAuthImg.setImageResource(R.drawable.correct)
-                        verificationViewModel.setIsCaptchaVerified()
-                        onAuthSuccess()
-                    }
-                }
-    }
-
-    // handles device authentication result
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if(requestCode == KeyStoreManager.DEVICE_ACCESS_CODE) {
-            if(resultCode == RESULT_OK) {
-                verificationViewModel.setIsDeviceAccessVerified()
-                binding.deviceAuthImg.setImageResource(R.drawable.correct)
-                onAuthSuccess()
-            }
-        }
-    }
-
-    // handles interaction with userPasswordAuth box
-    @RequiresApi(Build.VERSION_CODES.Q)
-    @SuppressLint("ShowToast")
-    private fun handleUserPasswordAuth() {
-
-        if(verificationViewModel.isUserPasswordVerified())
-            return
-
-        val alertDialogBuilder = AlertDialog.Builder(requireContext())
-
-        val passwordInput = EditText(requireContext())
-        passwordInput.backgroundTintList = ColorStateList.valueOf(Color.BLACK)
-        passwordInput.hint = getString(R.string.userPasswordBoxText)
-        passwordInput.textAlignment = View.TEXT_ALIGNMENT_CENTER
-        passwordInput.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-        alertDialogBuilder.setView(passwordInput)
-
-        alertDialogBuilder.setPositiveButton(getString(R.string.ok)) { _, _ ->
-
-            val userInput = passwordInput.text.toString()
-
-            if(verificationViewModel.isUserPasswordCorrect(userInput)) {
-                binding.userPasswordAuthStatus.setImageResource(R.drawable.correct)
-                verificationViewModel.setIsUserPasswordVerified()
+            // check if its first time usage
+            if(verificationViewModel.isFirstTimeUsage()) {
                 onAuthSuccess()
             }
             else {
-                showSnack(getString(R.string.incorrectPassword))
+                biometricPrompt = BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        super.onAuthenticationError(errorCode, errString)
+                        if(errorCode == BiometricPrompt.ERROR_LOCKOUT)
+                            SharedPreferencesManager.removeNote()
+                            onTimeout()
+                    }
+
+                    @RequiresApi(Build.VERSION_CODES.N)
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        super.onAuthenticationSucceeded(result)
+
+                        binding.deviceAuthImg.setImageResource(R.drawable.correct)
+
+                        val cryptoObject = result.cryptoObject!!.cipher!!
+                        verificationViewModel.onAuthSuccess(cryptoObject)
+
+                        onAuthSuccess()
+                    }
+
+                    override fun onAuthenticationFailed() {
+                        super.onAuthenticationFailed()
+                        showDialog(getString(R.string.warningAttempt))
+                    }
+                })
+
+                biometricPromptInfo = BiometricPrompt.PromptInfo.Builder()
+                        .setTitle(getString(R.string.accessToNote))
+                        .setSubtitle(getString(R.string.accessToNoteSub))
+                        .setNegativeButtonText(getString(R.string.cancel))
+                        .build()
+
+                when(BiometricManager.from(requireContext()).canAuthenticate()) {
+                    BiometricManager.BIOMETRIC_SUCCESS -> {
+                        try {
+                            biometricPrompt.authenticate(biometricPromptInfo, BiometricPrompt.CryptoObject(CryptographyManager.initCipherForDecryption()))
+                        }
+                        catch (e : KeyPermanentlyInvalidatedException) {
+                            showDialog(getString(R.string.onEnrollment))
+                        }
+                    }
+                    BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
+                        showSnack(getString(R.string.hardwareUnavailable))
+                    }
+                    BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
+                        showSnack(getString(R.string.noEnrolled))
+                    }
+                    BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
+                        showSnack(getString(R.string.noHardware))
+                    }
+                    else -> {
+                        showSnack(getString(R.string.currentLock))
+                    }
+                }
             }
         }
+        else {
+            showSnack(getString(R.string.captchaFirst))
+        }
+    }
+    // handles interaction with captchaAuth box
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun handleCaptchaAuth() {
 
-        alertDialogBuilder.setNegativeButton(getString(R.string.cancel), DialogInterface.OnClickListener { dialog, _ ->
-            dialog.cancel()
-        })
-
-        val alertDialog = alertDialogBuilder.create()
-
-        alertDialog.show()
-        alertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(Color.BLACK)
-        alertDialog.getButton(DialogInterface.BUTTON_NEGATIVE).setTextColor(Color.BLACK)
+        if(!verificationViewModel.isCaptchaVerified()) {
+            SafetyNet.SafetyNetApi.verifyWithRecaptcha(googleApiClient, verificationViewModel.captchaSiteKey)
+                .setResultCallback { result ->
+                    if (result.status.isSuccess) {
+                        binding.captchaAuthImg.setImageResource(R.drawable.correct)
+                        verificationViewModel.setIsCaptchaVerified()
+                        binding.deviceAuthBox.alpha = 1.0F
+                    }
+                }
+        }
     }
 
     // maintains remaining time for user to authenticate
     private fun startTimeCounter() {
-        authTimer = object : CountDownTimer(KeyStoreManager.TIMEOUT_AFTER, 1000) {
+        authTimer = object : CountDownTimer(verificationViewModel.TIMEOUT_AFTER, 1000) {
             @SuppressLint("SetTextI18n")
             override fun onTick(p0: Long) {
                 val remainingTimeText = getString(R.string.remainingTime)
@@ -196,12 +201,12 @@ class VerificationFragment : Fragment(), GoogleApiClient.ConnectionCallbacks {
     }
 
     // redirect to note screen if all authentication steps are finished with success
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun onAuthSuccess() {
-        if(verificationViewModel.isSuccessfullyVerified()) {
+        if(verificationViewModel.isDeviceNotRooted()) {
             authTimer.cancel()
             findNavController().navigate(R.id.action_verificationFragment_to_noteFragment)
         }
-        KeyStoreManager.setExitIfBackgrounded(true)
     }
 
     // redirect to main screen if authentication steps are not finished on time

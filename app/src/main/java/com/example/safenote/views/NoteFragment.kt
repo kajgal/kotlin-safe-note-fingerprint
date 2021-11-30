@@ -1,50 +1,48 @@
 package com.example.safenote.views
 
-import android.app.AlertDialog
-import android.content.Context
-import android.content.DialogInterface
-import android.content.res.ColorStateList
-import android.graphics.Color
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.text.InputType
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import android.widget.TextView
 import androidx.annotation.RequiresApi
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProviders
-import androidx.navigation.fragment.findNavController
 import com.example.safenote.R
 import com.example.safenote.databinding.FragmentNoteBinding
-import com.example.safenote.utils.KeyStoreManager
-import com.example.safenote.viewmodels.NoteViewModel
+import com.example.safenote.utils.CryptographyManager
 import com.example.safenote.viewmodels.VerificationViewModel
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.Job
+import java.util.concurrent.Executor
 
 class NoteFragment : Fragment() {
 
-    private lateinit var noteViewModel : NoteViewModel
     private lateinit var verificationViewModel : VerificationViewModel
     private var _binding : FragmentNoteBinding? = null
     private val binding get() = _binding!!
 
     private var isNoteHidden = true
 
+    private lateinit var executor : Executor
+    private lateinit var biometricPrompt : BiometricPrompt
+    private lateinit var biometricPromptInfo : BiometricPrompt.PromptInfo
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        executor = ContextCompat.getMainExecutor(requireContext())
         verificationViewModel = ViewModelProviders.of(requireActivity()).get(VerificationViewModel::class.java)
-        noteViewModel = ViewModelProviders.of(requireActivity()).get(NoteViewModel::class.java)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentNoteBinding.inflate(inflater, container, false)
-        KeyStoreManager.allowAccess(requireContext())
+
+        binding.secretNoteEditText.showSoftInputOnFocus = false
 
         binding.secretNoteEditText.setOnLongClickListener {
             onNoteRequest()
@@ -54,12 +52,6 @@ class NoteFragment : Fragment() {
         binding.saveNoteBtn.setOnClickListener {
             onNoteSaved()
         }
-
-        binding.changePasswordBtn.setOnClickListener {
-            onChangePassword()
-        }
-
-        noteViewModel.setNoteContent(KeyStoreManager.getNote())
 
         return binding.root
     }
@@ -74,60 +66,70 @@ class NoteFragment : Fragment() {
     }
 
     // handles saving note
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun onNoteSaved() {
-        val noteContent = noteViewModel.getNoteContent()
-        if(isNoteHidden)
-            KeyStoreManager.saveNote(noteContent)
-        else
-            KeyStoreManager.saveNote(binding.secretNoteEditText.text.toString())
-        showSnack(getString(R.string.savedSuccessfully))
-        hideNote()
-    }
 
-    // displays dialog with input for password
-    private fun onChangePassword() {
-        val alertDialogBuilder = AlertDialog.Builder(requireContext())
+        biometricPrompt = BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {
 
-        val passwordInput = EditText(requireContext())
-        passwordInput.backgroundTintList = ColorStateList.valueOf(Color.BLACK)
-        passwordInput.hint = getString(R.string.userPasswordBoxText)
-        passwordInput.textAlignment = View.TEXT_ALIGNMENT_CENTER
-        passwordInput.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-        alertDialogBuilder.setView(passwordInput)
-
-        alertDialogBuilder.setPositiveButton(getString(R.string.ok)) { _, _ ->
-
-            val userInput = passwordInput.text.toString()
-
-            if(verificationViewModel.isUserPasswordCorrect(userInput)) {
-                findNavController().navigate(R.id.action_noteFragment_to_setPasswordFragment)
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                super.onAuthenticationError(errorCode, errString)
+                onTooManyFailedAttempts()
             }
-            else {
-                showSnack(getString(R.string.incorrectPassword))
+
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                super.onAuthenticationSucceeded(result)
+
+                var currentNoteContent = ""
+
+                currentNoteContent = if(isNoteHidden)
+                    verificationViewModel.getNoteContent()
+                else
+                    binding.secretNoteEditText.text.toString()
+
+                hideNote()
+                verificationViewModel.saveNoteContent(currentNoteContent, result.cryptoObject!!.cipher!!)
+                showSnack(getString(R.string.savedSuccessfully))
+            }
+
+            override fun onAuthenticationFailed() {
+                super.onAuthenticationFailed()
+            }
+        })
+
+        biometricPromptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle(getString(R.string.savingNewData))
+            .setSubtitle(getString(R.string.savingNewDataSub))
+            .setNegativeButtonText(getString(R.string.cancel))
+            .build()
+
+        when(BiometricManager.from(requireContext()).canAuthenticate()) {
+            BiometricManager.BIOMETRIC_SUCCESS -> {
+                biometricPrompt.authenticate(biometricPromptInfo, BiometricPrompt.CryptoObject(CryptographyManager.initCipherForEncryption()))
+            }
+            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
+                showSnack(getString(R.string.hardwareUnavailable))
+            }
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
+                showSnack(getString(R.string.noEnrolled))
+            }
+            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
+                showSnack(getString(R.string.noHardware))
             }
         }
-
-        alertDialogBuilder.setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
-            dialog.cancel()
-        }
-
-        val alertDialog = alertDialogBuilder.create()
-
-        alertDialog.show()
-        alertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(Color.BLACK)
-        alertDialog.getButton(DialogInterface.BUTTON_NEGATIVE).setTextColor(Color.BLACK)
     }
 
     private fun hideNote() {
+        binding.secretNoteEditText.showSoftInputOnFocus = false
         binding.secretNoteEditText.hint = getString(R.string.notePlaceholder)
-        noteViewModel.setNoteContent(binding.secretNoteEditText.text.toString())
+        verificationViewModel.setNoteContent(binding.secretNoteEditText.text.toString())
         binding.secretNoteEditText.setText("")
         isNoteHidden = true
     }
 
     private fun showNote() {
+        binding.secretNoteEditText.showSoftInputOnFocus = true
         binding.secretNoteEditText.hint = ""
-        binding.secretNoteEditText.setText(noteViewModel.getNoteContent())
+        binding.secretNoteEditText.setText(verificationViewModel.getNoteContent())
         isNoteHidden = false
     }
 
@@ -137,7 +139,15 @@ class NoteFragment : Fragment() {
         val snackView = snack.view
         val snackText  = snackView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
         snackText.textAlignment = View.TEXT_ALIGNMENT_CENTER
-
         snack.show()
+    }
+
+    private fun onTooManyFailedAttempts() {
+        val intent = requireActivity().intent
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+        requireActivity().overridePendingTransition(0, 0)
+        requireActivity().finish()
+        requireActivity().overridePendingTransition(0, 0)
+        startActivity(intent)
     }
 }

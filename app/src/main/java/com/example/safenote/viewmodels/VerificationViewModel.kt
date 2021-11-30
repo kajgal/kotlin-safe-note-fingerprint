@@ -1,51 +1,63 @@
 package com.example.safenote.viewmodels
 
 import androidx.lifecycle.ViewModel
-import at.favre.lib.crypto.bcrypt.BCrypt
-import com.example.safenote.utils.KeyStoreManager
-import kotlinx.coroutines.Job
+import com.example.safenote.utils.CryptographyManager
+import com.example.safenote.utils.SharedPreferencesManager
+import javax.crypto.Cipher
 
 class VerificationViewModel : ViewModel() {
 
-    private var isDeviceNotRooted = false;
-    private var isDeviceAccessVerified = false;
-    private var isCaptchaVerified = false;
-    private var isUserPasswordVerified = false;
+    val captchaSiteKey = "6LcEVDsdAAAAAJbRg7iUKgPwMdxYZt-pCWqjH4wD"
+    val TIMEOUT_AFTER = 60000L
 
-    fun isUserPasswordCorrect(password : String) : Boolean {
-        val passwordHash = KeyStoreManager.getPasswordHash().toString()
-        return BCrypt.verifyer().verify(password.toCharArray(), passwordHash).verified
+    private var isDeviceNotRooted = false
+    private var isCaptchaVerified = false
+
+    private var noteContent = ""
+
+    fun resetVerification() {
+        isDeviceNotRooted = false
+        isCaptchaVerified = false
     }
 
     fun setIsDeviceNotRooted() {
         isDeviceNotRooted = true
     }
 
+    fun isDeviceNotRooted() : Boolean {
+        return isDeviceNotRooted
+    }
+
     fun setIsCaptchaVerified() {
         isCaptchaVerified = true
-    }
-
-    fun setIsDeviceAccessVerified() {
-        isDeviceAccessVerified = true
-    }
-
-    fun setIsUserPasswordVerified() {
-        isUserPasswordVerified = true
-    }
-
-    fun isDeviceAccessVerified() : Boolean {
-        return isDeviceAccessVerified
     }
 
     fun isCaptchaVerified() : Boolean {
         return isCaptchaVerified
     }
 
-    fun isUserPasswordVerified() : Boolean {
-        return isUserPasswordVerified
+    fun setNoteContent(newContent : String) {
+        noteContent = newContent
     }
 
-    fun isSuccessfullyVerified() : Boolean {
-        return (isDeviceNotRooted and isDeviceAccessVerified and isCaptchaVerified and isUserPasswordVerified)
+    fun getNoteContent() : String {
+        return noteContent
+    }
+
+    fun onAuthSuccess(cipher: Cipher) {
+        val decryptedNote = CryptographyManager.decryptData(cipher)
+        setNoteContent(decryptedNote)
+    }
+
+    fun saveNoteContent(note : String, cipher : Cipher) {
+        val encryptedNote = CryptographyManager.encryptData(note, cipher)
+        SharedPreferencesManager.saveNote(encryptedNote)
+    }
+
+    fun isFirstTimeUsage(): Boolean {
+        if(SharedPreferencesManager.getNote() == "")
+            return true
+
+        return false
     }
 }

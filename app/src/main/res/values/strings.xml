@@ -1,33 +1,29 @@
 <resources>
     <!-- Main fragment -->
-    <string name="app_name">SafeNote</string>
+    <string name="app_name">SafeNote - Fingerprint</string>
     <string name="safe_note_header">Safe Note</string>
     <string name="safe_note_sub_header">for your security and privacy</string>
     <string name="store_data">Store data</string>
     <!-- Main fragment end -->
 
-    <!-- Set password fragment -->
-    <string name="savePassword">Save password</string>
-    <string name="passwordChangeText">Password has been changed.\nYou will be now redirected to the home screen.</string>
-    <string name="passwordLengthInfo">- at least 12 characters - the more, the better</string>
-    <string name="passwordUpperLowerInfo">- mixture of both uppercase and lowercase letters</string>
-    <string name="passwordNumbersInfo">- mixture of letters and numbers</string>
-    <string name="passwordSpecialCharsInfo">- at least one special character - the more, the better</string>
-    <string name="passwordsNotMatching">Error! Passwords not matching.</string>
-    <!-- Set password fragment end -->
-
     <!-- Verification fragment -->
     <string name="authentication">Authentication</string>
     <string name="authenticationUpperInfo">Complete all steps to be automatically redirected to your notepad.</string>
     <string name="rootedDeviceBoxText">Device reliability</string>
-    <string name="deviceAccessBoxText">Access to the device</string>
-    <string name="captchaBoxText">Recaptcha authorization</string>
-    <string name="userPasswordBoxText">User password</string>
-    <string name="userPasswordConfirmBoxText">Confirm user password</string>
+    <string name="deviceAccessBoxText">Fingerprint</string>
+    <string name="captchaBoxText">Recaptcha</string>
     <string name="rootedAuthInfo">Determining whether a device is rooted or not is not the easiest thing to do - but at least we can try.\nIf we have marked your device as rooted, make sure it is not.\nIf you are sure that your device is not rooted and you still don\'t get successful verification, please contact with us.</string>
     <string name="authenticationBottomInfo">If you don\'t complete all the steps on time, you will be redirected to the start screen.</string>
     <string name="remainingTime">Remaining time:</string>
-    <string name="inputPassword">Enter your password</string>
+    <string name="captchaFirst">Please finish recaptcha authentication first!</string>
+    <string name="warningAttempt">Warning! After 5 failed attempts your message will be gone!</string>
+    <string name="accessToNote">Access to note</string>
+    <string name="currentLock">You\'ve tried too many times - try again later</string>
+    <string name="accessToNoteSub">Confirm your identity to go to the note</string>
+    <string name="noHardware">No hardware- sorry you can\'t use this app</string>
+    <string name="hardwareUnavailable">Hardware unavailable - try again</string>
+    <string name="noEnrolled">No biometric enrolled - set up one and try again</string>
+    <string name="onEnrollment">Upsss!\nWe detected some changes in your device security...\nTo continue using the application in the safest way, you need to reinstall it</string>
     <!-- Verification fragment end -->
 
     <!-- Note fragment -->
@@ -35,6 +31,9 @@
     <string name="saveMessage">Save</string>
     <string name="changePassword">Change Password</string>
     <string name="savedSuccessfully">Secret message saved!</string>
+    <string name="tooManyFailedAttempts">After another unsuccessful attempt, you will need to re-authenticate</string>
+    <string name="savingNewData">Saving new message</string>
+    <string name="savingNewDataSub">Confirm saving a new message with your fingerprint</string>
     <!-- Note fragment end -->
 
     <!-- GLOBAL -->

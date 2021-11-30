@@ -44,17 +44,6 @@
             android:text="@string/saveMessage"
             android:textColor="@color/black" />
 
-        <Button
-            android:id="@+id/changePasswordBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"
-            android:layout_weight="1"
-            android:backgroundTint="@color/white"
-            android:text="@string/changePassword"
-            android:textColor="@color/black" />
-
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
