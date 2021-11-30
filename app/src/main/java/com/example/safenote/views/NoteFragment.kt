@@ -73,21 +73,14 @@ class NoteFragment : Fragment() {
 
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                 super.onAuthenticationError(errorCode, errString)
-                onTooManyFailedAttempts()
+                if(errorCode == BiometricPrompt.ERROR_LOCKOUT)
+                    onTooManyFailedAttempts()
             }
 
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                 super.onAuthenticationSucceeded(result)
 
-                var currentNoteContent = ""
-
-                currentNoteContent = if(isNoteHidden)
-                    verificationViewModel.getNoteContent()
-                else
-                    binding.secretNoteEditText.text.toString()
-
-                hideNote()
-                verificationViewModel.saveNoteContent(currentNoteContent, result.cryptoObject!!.cipher!!)
+                verificationViewModel.saveNoteContent(verificationViewModel.getNoteContent(), result.cryptoObject!!.cipher!!)
                 showSnack(getString(R.string.savedSuccessfully))
             }
 
@@ -104,6 +97,8 @@ class NoteFragment : Fragment() {
 
         when(BiometricManager.from(requireContext()).canAuthenticate()) {
             BiometricManager.BIOMETRIC_SUCCESS -> {
+                if(!isNoteHidden)
+                    hideNote()
                 biometricPrompt.authenticate(biometricPromptInfo, BiometricPrompt.CryptoObject(CryptographyManager.initCipherForEncryption()))
             }
             BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
@@ -118,7 +113,7 @@ class NoteFragment : Fragment() {
         }
     }
 
-    private fun hideNote() {
+    private fun hideNote(override : Boolean = true) {
         binding.secretNoteEditText.showSoftInputOnFocus = false
         binding.secretNoteEditText.hint = getString(R.string.notePlaceholder)
         verificationViewModel.setNoteContent(binding.secretNoteEditText.text.toString())
