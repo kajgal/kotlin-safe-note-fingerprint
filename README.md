@@ -12,15 +12,9 @@
 
 ![Main screen](./img/main.jpg)
 
-![Change password](./img/changePassword.jpg)
-
-![Auth](./img/auth.jpg)
-
 ![Device auth](./img/deviceAuth.jpg)
 
 ![Recaptcha auth](./img/recaptchaAuth.jpg)
-
-![Password auth](./img/passwordAuth.jpg)
 
 ![Note](./img/note.jpg)
 
