@@ -1,8 +1,12 @@
 package com.example.safenote.views
 
+import android.app.AlertDialog
+import android.content.DialogInterface
 import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -93,7 +97,13 @@ class NoteFragment : Fragment() {
             BiometricManager.BIOMETRIC_SUCCESS -> {
                 if(!isNoteHidden)
                     hideNote()
-                biometricPrompt.authenticate(biometricPromptInfo, BiometricPrompt.CryptoObject(CryptographyManager.initCipherForEncryption()))
+
+                try {
+                    biometricPrompt.authenticate(biometricPromptInfo, BiometricPrompt.CryptoObject(CryptographyManager.initCipherForEncryption()))
+                }
+                catch (e : KeyPermanentlyInvalidatedException) {
+                    showDialog(getString(R.string.onEnrollment))
+                }
             }
             BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
                 showSnack(getString(R.string.hardwareUnavailable))
@@ -133,6 +143,22 @@ class NoteFragment : Fragment() {
         snackText.textAlignment = View.TEXT_ALIGNMENT_CENTER
         snack.show()
     }
+
+    // displays dialog with message
+    private fun showDialog(message : String) {
+
+        val alertDialogBuilder = AlertDialog.Builder(requireContext())
+        alertDialogBuilder.setMessage(message)
+        alertDialogBuilder.setPositiveButton(getString(R.string.ok), null)
+
+        val alertDialog = alertDialogBuilder.create()
+        alertDialog.show()
+        alertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(Color.BLACK)
+
+        val messageView = alertDialog.findViewById<TextView>(android.R.id.message)
+        messageView.textSize = 18F
+    }
+
 
     private fun onSavingFailed() {
         val intent = requireActivity().intent
