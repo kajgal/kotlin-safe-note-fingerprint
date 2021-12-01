@@ -24,7 +24,7 @@
     <string name="hardwareUnavailable">Hardware unavailable - try again</string>
     <string name="noEnrolled">No biometric enrolled - set up one and try again</string>
     <string name="messageGone">You have failed authentication process too many times in a short period of time.\nWe have reasons not to trust you anymore.\nYour secret message is gone.\nSorry!\n</string>
-    <string name="onEnrollment">Upsss!\nWe detected some changes in your device security...\nYour data is not safe anymore!\nDue to security violation we had to clear your storage\nPlease remember that every biometric enrollment will clear your data!</string>
+    <string name="onEnrollment">Upsss!\nWe detected some changes in your device security...\nYour data is not safe anymore!\nDue to security violation we had to make sure that your data won\'t be obtained by wrong person.\nPlease remember that every biometric enrollment will clear your data!</string>
     <!-- Verification fragment end -->
 
     <!-- Note fragment -->
