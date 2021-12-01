@@ -42,7 +42,6 @@ My implementation is per-operation key authorization. With usage of CryptoObject
 - recaptcha verifcation
 - limited time for authorization (timeout to main screen if count down finishes)
 - app is not allowed to work in background (minimazing app = getting app closed)
-- all data is fully encrypted/hashed in sharedPreferences, no plainText
 - manual protection - you need to know how to display message in note screen
 - message will be deleted if BiometricPrompt locks due to too many failed attempts
 - message will be deleted on new biometric enrollment
