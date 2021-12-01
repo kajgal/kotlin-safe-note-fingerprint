@@ -70,13 +70,6 @@ class NoteFragment : Fragment() {
     private fun onNoteSaved() {
 
         biometricPrompt = BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {
-
-            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                super.onAuthenticationError(errorCode, errString)
-                if(errorCode == BiometricPrompt.ERROR_LOCKOUT)
-                    onTooManyFailedAttempts()
-            }
-
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                 super.onAuthenticationSucceeded(result)
 
@@ -86,6 +79,7 @@ class NoteFragment : Fragment() {
 
             override fun onAuthenticationFailed() {
                 super.onAuthenticationFailed()
+                onSavingFailed()
             }
         })
 
@@ -110,10 +104,13 @@ class NoteFragment : Fragment() {
             BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
                 showSnack(getString(R.string.noHardware))
             }
+            else -> {
+                showSnack(getString(R.string.currentLock))
+            }
         }
     }
 
-    private fun hideNote(override : Boolean = true) {
+    private fun hideNote() {
         binding.secretNoteEditText.showSoftInputOnFocus = false
         binding.secretNoteEditText.hint = getString(R.string.notePlaceholder)
         verificationViewModel.setNoteContent(binding.secretNoteEditText.text.toString())
@@ -137,7 +134,7 @@ class NoteFragment : Fragment() {
         snack.show()
     }
 
-    private fun onTooManyFailedAttempts() {
+    private fun onSavingFailed() {
         val intent = requireActivity().intent
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
         requireActivity().overridePendingTransition(0, 0)

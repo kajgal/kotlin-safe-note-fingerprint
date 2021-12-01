@@ -16,13 +16,14 @@
     <string name="authenticationBottomInfo">If you don\'t complete all the steps on time, you will be redirected to the start screen.</string>
     <string name="remainingTime">Remaining time:</string>
     <string name="captchaFirst">Please finish recaptcha authentication first!</string>
-    <string name="warningAttempt">Warning! After 5 failed attempts your message will be gone!</string>
+    <string name="warningAttempt">Warning!\nAfter too many failed attempts your message will be gone!</string>
     <string name="accessToNote">Access to note</string>
-    <string name="currentLock">You\'ve tried too many times - try again later</string>
+    <string name="currentLock">You have tried too many times!\nTry again later...</string>
     <string name="accessToNoteSub">Confirm your identity to go to the note</string>
     <string name="noHardware">No hardware- sorry you can\'t use this app</string>
     <string name="hardwareUnavailable">Hardware unavailable - try again</string>
     <string name="noEnrolled">No biometric enrolled - set up one and try again</string>
+    <string name="messageGone">You have failed authentication process too many times in a short period of time.\nWe have reasons not to trust you anymore.\nYour secret message is gone.\nSorry!\n</string>
     <string name="onEnrollment">Upsss!\nWe detected some changes in your device security...\nTo continue using the application in the safest way, you need to reinstall it</string>
     <!-- Verification fragment end -->
 
@@ -33,7 +34,7 @@
     <string name="savedSuccessfully">Secret message saved!</string>
     <string name="tooManyFailedAttempts">After another unsuccessful attempt, you will need to re-authenticate</string>
     <string name="savingNewData">Saving new message</string>
-    <string name="savingNewDataSub">Confirm saving a new message with your fingerprint</string>
+    <string name="savingNewDataSub">Confirm saving a new message with your fingerprint - if you fail, you will have to re-authenticate.</string>
     <!-- Note fragment end -->
 
     <!-- GLOBAL -->

@@ -100,64 +100,74 @@ class VerificationFragment : Fragment(), GoogleApiClient.ConnectionCallbacks {
         // force user to finish captcha auth first
         if(verificationViewModel.isCaptchaVerified()) {
 
-            // check if its first time usage
-            if(verificationViewModel.isFirstTimeUsage()) {
-                onAuthSuccess()
-            }
-            else {
-                biometricPrompt = BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {
-                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                        super.onAuthenticationError(errorCode, errString)
-                        if(errorCode == BiometricPrompt.ERROR_LOCKOUT)
+            biometricPrompt = BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    if(errorCode == BiometricPrompt.ERROR_LOCKOUT) {
+
+                        biometricPrompt.cancelAuthentication()
+
+                        if(verificationViewModel.isFirstTimeUsage()) {
+                            showDialog(getString(R.string.currentLock))
+                        }
+                        else {
                             SharedPreferencesManager.removeNote()
-                            onTimeout()
+                            showDialog(getString(R.string.messageGone))
+                        }
                     }
+                }
 
-                    @RequiresApi(Build.VERSION_CODES.N)
-                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                        super.onAuthenticationSucceeded(result)
+                @RequiresApi(Build.VERSION_CODES.N)
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
 
-                        binding.deviceAuthImg.setImageResource(R.drawable.correct)
+                    binding.deviceAuthImg.setImageResource(R.drawable.correct)
 
-                        val cryptoObject = result.cryptoObject!!.cipher!!
+                    val cryptoObject = result.cryptoObject?.cipher
+
+                    if (cryptoObject != null) {
                         verificationViewModel.onAuthSuccess(cryptoObject)
-
-                        onAuthSuccess()
                     }
 
-                    override fun onAuthenticationFailed() {
-                        super.onAuthenticationFailed()
-                        showDialog(getString(R.string.warningAttempt))
-                    }
-                })
+                    onAuthSuccess()
+                }
 
-                biometricPromptInfo = BiometricPrompt.PromptInfo.Builder()
-                        .setTitle(getString(R.string.accessToNote))
-                        .setSubtitle(getString(R.string.accessToNoteSub))
-                        .setNegativeButtonText(getString(R.string.cancel))
-                        .build()
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    biometricPrompt.cancelAuthentication()
+                    showDialog(getString(R.string.warningAttempt))
+                }
+            })
 
-                when(BiometricManager.from(requireContext()).canAuthenticate()) {
-                    BiometricManager.BIOMETRIC_SUCCESS -> {
-                        try {
+            biometricPromptInfo = BiometricPrompt.PromptInfo.Builder()
+                    .setTitle(getString(R.string.accessToNote))
+                    .setSubtitle(getString(R.string.accessToNoteSub))
+                    .setNegativeButtonText(getString(R.string.cancel))
+                    .build()
+
+            when(BiometricManager.from(requireContext()).canAuthenticate()) {
+                BiometricManager.BIOMETRIC_SUCCESS -> {
+                    try {
+                        if(verificationViewModel.isFirstTimeUsage())
+                            biometricPrompt.authenticate(biometricPromptInfo)
+                        else
                             biometricPrompt.authenticate(biometricPromptInfo, BiometricPrompt.CryptoObject(CryptographyManager.initCipherForDecryption()))
-                        }
-                        catch (e : KeyPermanentlyInvalidatedException) {
-                            showDialog(getString(R.string.onEnrollment))
-                        }
                     }
-                    BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
-                        showSnack(getString(R.string.hardwareUnavailable))
+                    catch (e : KeyPermanentlyInvalidatedException) {
+                        showDialog(getString(R.string.onEnrollment))
                     }
-                    BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
-                        showSnack(getString(R.string.noEnrolled))
-                    }
-                    BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
-                        showSnack(getString(R.string.noHardware))
-                    }
-                    else -> {
-                        showSnack(getString(R.string.currentLock))
-                    }
+                }
+                BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
+                    showSnack(getString(R.string.hardwareUnavailable))
+                }
+                BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
+                    showSnack(getString(R.string.noEnrolled))
+                }
+                BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
+                    showSnack(getString(R.string.noHardware))
+                }
+                else -> {
+                    showSnack(getString(R.string.currentLock))
                 }
             }
         }

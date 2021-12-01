@@ -31,6 +31,6 @@ class MainActivity : AppCompatActivity(), LifecycleObserver {
     // app is not allowed to work in background, immediately closing when minimized
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     fun onAppBackgrounded() {
-        //finishAndRemoveTask()
+        finishAndRemoveTask()
     }
 }
