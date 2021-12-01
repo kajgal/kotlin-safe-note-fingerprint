@@ -112,4 +112,9 @@ object CryptographyManager {
         return ivBytes
     }
 
+    fun deleteKey() {
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE_PROVIDER)
+        keyStore.load(null)
+        keyStore.deleteEntry(SECRET_KEY_ALIAS)
+    }
 }

@@ -154,7 +154,8 @@ class VerificationFragment : Fragment(), GoogleApiClient.ConnectionCallbacks {
                             biometricPrompt.authenticate(biometricPromptInfo, BiometricPrompt.CryptoObject(CryptographyManager.initCipherForDecryption()))
                     }
                     catch (e : KeyPermanentlyInvalidatedException) {
-                        showDialog(getString(R.string.onEnrollment))
+                        verificationViewModel.onKeyPermanentlyInvalidated()
+                        showDialog(getString(R.string.onEnrollment), requestExit = true)
                     }
                 }
                 BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
@@ -242,15 +243,25 @@ class VerificationFragment : Fragment(), GoogleApiClient.ConnectionCallbacks {
     }
 
     // displays dialog with message
-    private fun showDialog(message : String) {
+    private fun showDialog(message: String, requestExit : Boolean = false) {
 
         val alertDialogBuilder = AlertDialog.Builder(requireContext())
         alertDialogBuilder.setMessage(message)
-        alertDialogBuilder.setPositiveButton(getString(R.string.ok), null)
 
         val alertDialog = alertDialogBuilder.create()
         alertDialog.show()
         alertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(Color.BLACK)
+
+        if(requestExit) {
+            alertDialogBuilder.setPositiveButton(getString(R.string.ok)) { _, _ -> onTimeout() }
+            alertDialog.setOnCancelListener {
+                onTimeout()
+            }
+        }
+        else {
+            alertDialogBuilder.setPositiveButton(getString(R.string.ok), null)
+
+        }
 
         val messageView = alertDialog.findViewById<TextView>(android.R.id.message)
         messageView.textSize = 18F

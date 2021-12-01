@@ -60,4 +60,9 @@ class VerificationViewModel : ViewModel() {
 
         return false
     }
+
+    fun onKeyPermanentlyInvalidated() {
+        CryptographyManager.deleteKey()
+        SharedPreferencesManager.removeNote()
+    }
 }

@@ -102,7 +102,8 @@ class NoteFragment : Fragment() {
                     biometricPrompt.authenticate(biometricPromptInfo, BiometricPrompt.CryptoObject(CryptographyManager.initCipherForEncryption()))
                 }
                 catch (e : KeyPermanentlyInvalidatedException) {
-                    showDialog(getString(R.string.onEnrollment))
+                    verificationViewModel.onKeyPermanentlyInvalidated()
+                    showDialog(getString(R.string.onEnrollment), requestExit = true)
                 }
             }
             BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
@@ -145,20 +146,29 @@ class NoteFragment : Fragment() {
     }
 
     // displays dialog with message
-    private fun showDialog(message : String) {
+    private fun showDialog(message: String, requestExit : Boolean = false) {
 
         val alertDialogBuilder = AlertDialog.Builder(requireContext())
         alertDialogBuilder.setMessage(message)
-        alertDialogBuilder.setPositiveButton(getString(R.string.ok), null)
 
         val alertDialog = alertDialogBuilder.create()
         alertDialog.show()
         alertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setTextColor(Color.BLACK)
 
+        if(requestExit) {
+            alertDialogBuilder.setPositiveButton(getString(R.string.ok)) { _, _ -> onSavingFailed() }
+            alertDialog.setOnCancelListener {
+                onSavingFailed()
+            }
+        }
+        else {
+            alertDialogBuilder.setPositiveButton(getString(R.string.ok), null)
+
+        }
+
         val messageView = alertDialog.findViewById<TextView>(android.R.id.message)
         messageView.textSize = 18F
     }
-
 
     private fun onSavingFailed() {
         val intent = requireActivity().intent
