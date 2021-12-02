@@ -12,11 +12,26 @@
 
 ![Main screen](./img/main.jpg)
 
+![Auth screen](./img/auth.jpg)
+
 ![Recaptcha auth](./img/recaptchaAuth.jpg)
+
+![Fingerprint auth](./img/access.jpg)
 
 ![Note](./img/note.jpg)
 
-![Note hidden](./img/noteHidden.jpg)
+![Save note](./img/save.jpg)
+
+## Errors:
+
+![Warning](./img/warning.jpg)
+
+![Failed](./img/failed.jpg)
+
+![Delay](./img/delay.jpg)
+
+![Invalid key](./img/invalid.jpg)
+
 
 ## Description:
 
