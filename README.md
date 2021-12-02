@@ -38,6 +38,9 @@
 #### Architecture: Model - View - ViewModel
 
 #### KeyStore:
+
+Android Keystore system protects key material from unauthorized use. Firstly, Android Keystore mitigates unauthorized use of key material outside of the Android device by preventing extraction of the key material from application processes and from the Android device as a whole. Secondly, Android KeyStore mitigates unauthorized use of key material on the Android device by making apps specify authorized uses of their keys and then enforcing these restrictions outside of the apps' processes.
+
 Considered secure as we cannot access key material. 
 However, an attacker might not actually need the key contents. The Keystore API could be used to retrieve key references, then they could be used to initialize the Cipher object and then they could be used to decrypt or encrypt application storage.
 That's why biometric authentication is crucial to use.
